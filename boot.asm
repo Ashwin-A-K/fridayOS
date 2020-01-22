@@ -28,4 +28,5 @@ start:
     mov word [0xb8010], 0x0972 ; r
     mov word [0xb8012], 0x096c ; l
     mov word [0xb8014], 0x0964 ; d
+    mov word [0xb8016], 0x0220 ; 
     hlt
