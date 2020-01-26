@@ -2,7 +2,55 @@ global start;Label start is made available outside of this file, Else, GRUB won�
 
 section .text;code goes into a section named .text. Everything that comes after the section line is in that section, until another                section line.
 bits 32;GRUB will boot us into protected mode, aka 32-bit mode
+
+; ----------------------------------------------------------------------------------------------------------------------------------
+
+; In long mode, the page table is four levels deep, and each page is 4096 bytes in size. Here are the offcial names:
+;     the Page-Map Level-4 Table (PML4)
+;     the Page-Directory Pointer Table (PDP)
+;     the Page-Directory Table (PD)
+;     and the Page Table (PT)
+
+;   We're just going to go for 2 MiB pages, which means we only need three tables: we won't need a level 1 page table.
+
+section .bss ; It stands for block started by symbol. Entries in the bss section are automatically set to zero by the linker
+
+align 4096 ; align directive makes sure that we’ve aligned our tables properly.
+
+p4_table:
+    resb 4096 ;Reserves bytes directive reserve space for each entry
+p3_table:
+    resb 4096
+p2_table:
+    resb 4096
+
 start:
+    ; Point the first entry of the level 4 page table to the first entry in the p3 table
+    mov eax, p3_table; copies the contents of the first third-level page table entry into the eax register
+    
+    or eax, 0b11; we or eax with 0b11 =>By setting the first bit, we say that page is currently in memory and by setting the second,              we say that page is allowed to be written to.
+    
+    mov dword [p4_table + 0], eax; copies the contents of eax reg to level 4 page table page table entry. Adding 0 intended to                                     convey to the reader that we’re accessing the zeroth entry in the page table
+
+    ; Point the first entry of the level 3 page table to the first entry in the p2 table
+    mov eax, p2_table
+    or eax, 0b11
+    mov dword [p3_table + 0], eax
+
+    ; point each page table level two entry to a page
+    mov ecx, 0 ; counter variable
+    .map_p2_table:
+        mov eax, 0x200000 ; Its 2MiB and each page is two megabytes in size
+        mul ecx ; mul takes just one argument, here its ecx counter, and multiplies that by eax , storing the result in eax
+        or eax, 0b10000011 ; Here, we don’t just or 0b11. This extra 1 is a ‘huge page’ bit, meaning that the pages are 2MiB
+                           ; Thus 10000000 is 12 8bytes and with 8 bytes entry size, its 128*8 = 4MiB
+        mov [p2_table + ecx * 8], eax ; ecx is our loop counter. Each entry is eight bytes in size, so we need to multiply the                                      counter by eight, and then add it to p2_table
+        inc ecx
+        cmp ecx, 512 ; we want to map 512 page entries overall
+        jne .map_p2_table
+
+; ----------------------------------------------------------------------------------------------------------------------------------
+    
     ;   size  place     thing
     ;     |     |         |
     ;     V     V         V
