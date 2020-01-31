@@ -50,7 +50,32 @@ start:
         jne .map_p2_table
 
 ; ----------------------------------------------------------------------------------------------------------------------------------
+
+; Now that we have a valid page table, we need to inform the hardware about it. Here’s the steps we need to take:
+
+    ; move page table address to cr3
+    mov eax, p4_table
+    mov cr3, eax ; cr3 is a special register, called a control register which control how the CPU actually works. In our case,                     cr3 register needs to hold the location of the page table.
     
+    ; enable PAE
+    mov eax, cr4 ; why alternating value of cr4 is not in scope of this tut
+    or eax, 1 << 5 ; 1<<n = 2^n
+    mov cr4, eax
+    
+    ; set the long mode bit
+    mov ecx, 0xC0000080 ; why moving value is not in scope of this tut
+    rdmsr ; The rdmsr and wrmsr instructions read and write to a ‘model speci c register’
+    or eax, 1 << 8
+    wrmsr
+    
+    ; enable paging
+    mov eax, cr0 ; ; why altering the value is not in scope of this tut
+    or eax, 1 << 31
+    or eax, 1 << 16
+    mov cr0, eax
+
+; we’re in a special compatibility mode.
+; ---------------------------------------------------------------------------------------------------------------------------------   
     ;   size  place     thing
     ;     |     |         |
     ;     V     V         V
