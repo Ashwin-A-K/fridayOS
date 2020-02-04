@@ -74,8 +74,47 @@ start:
     or eax, 1 << 16
     mov cr0, eax
 
-; we’re in a special compatibility mode.
-; ---------------------------------------------------------------------------------------------------------------------------------   
+; we’re in a special compatibility mode
+; ----------------------------------------------------------------------------------------------------------------------------------
+
+; global descriptor table
+
+lgdt [gdt64.pointer]
+
+; GDT will have three entries:
+
+section .rodata ; read only data
+
+; 1) a ‘zero entry’ (it needs to be a zero value)
+gdt64: ; to tell the hardware where our GDT is located
+    dq 0 ; define quad-word which is a 64-bit value
+
+; 2) a ‘code segment’
+.code: equ $ - gdt64 ; .code: tells the assembler to scope this label under the last label that appeared
+                     ; equ sets the address for the label
+                     ; $ is the current position and we are subtracting the address of gdt64 from the current position.               Conveniently, that's the offset number we need for later
+                     ;
+    dq (1<<44) | (1<<47) | (1<<41) | (1<<43) | (1<<53) ; a value that has the 44th, 47th, 41st, 43rd, and 53rd bit set
+
+; 44: ‘descriptor type’: This has to be 1 for code and data segments
+; 47: ‘present’: This is set to 1 if the entry is valid
+; 41: ‘read/write’: If this is a code segment, 1 means that it’s readable
+; 43: ‘executable’: Set to 1 for code segments
+; 53: ‘64-bit’: if this is a 64-bit GDT, this should be set
+
+; 3) a ‘data segment’
+.data: equ $ - gdt64
+    dq (1<<44) | (1<<47) | (1<<41) ; Others are covered before. The only difference is bit 41 where 1 means that it’s writable
+
+; There’s a special assembly instruction to tell the hardware about our GDT: lgdt . But it doesn’t take the GDT itself; it takes a special structure: two bytes for the length, and eight bytes for the address.
+
+.pointer:
+    dw .pointer - gdt64 - 1 ; ; To calculate the length
+    dq gdt64 ; dq here has the address of our table
+
+lgdt [gdt64.pointer] ; lgdt stands for ‘load global descriptor table’
+
+; ----------------------------------------------------------------------------------------------------------------------------------
     ;   size  place     thing
     ;     |     |         |
     ;     V     V         V
