@@ -1,33 +1,33 @@
 default: build
 
+build: target/kernel.bin
+
 .PHONY: default build run clean #We need a way to tell make that this is a special target, it isn't really a le on disk, it's an action that should always be executed.
 
 #Syntax
 #target: prerequisites
 #	command
 
-build/multiboot_header.o: multiboot_header.asm
-	mkdir -p build
-	nasm -f elf64 multiboot_header.asm -o build/multiboot_header.o
+target/multiboot_header.o: src/asm/multiboot_header.asm
+	mkdir -p target
+	nasm -f elf64 src/asm/multiboot_header.asm -o target/multiboot_header.o
 	# Mandatory line uses a tab to indent
 
-build/boot.o: boot.asm
-	mkdir -p build
-	nasm -f elf64 boot.asm -o build/boot.o
+target/boot.o: src/asm/boot.asm
+	mkdir -p target
+	nasm -f elf64 src/asm/boot.asm -o target/boot.o
 
-build/kernel.bin: build/multiboot_header.o build/boot.o linker.ld
-	ld -n -o build/kernel.bin -T linker.ld build/multiboot_header.o build/boot.o
+target/kernel.bin: target/multiboot_header.o target/boot.o src/asm/linker.ld
+	ld -n -o target/kernel.bin -T src/asm/linker.ld target/multiboot_header.o target/boot.o
 
-build/fridayOS.iso: build/kernel.bin grub.cfg #Need to have all required files in top directory => cp isofiles/boot/grub/grub.cfg .
-	mkdir -p build/isofiles/boot/grub
-	cp grub.cfg build/isofiles/boot/grub
-	cp build/kernel.bin build/isofiles/boot/
-	grub-mkrescue -o build/fridayOS.iso build/isofiles
+target/fridayOS.iso: target/kernel.bin src/asm/grub.cfg # Need to have all required files in top directory => cp isofiles/boot/grub/														  grub.cfg .
+	mkdir -p target/isofiles/boot/grub
+	cp src/asm/grub.cfg target/isofiles/boot/grub
+	cp target/kernel.bin target/isofiles/boot/
+	grub-mkrescue -o target/fridayOS.iso target/isofiles
 
-run: build/fridayOS.iso #"make run" to boot the OS
-	qemu-system-x86_64 -cdrom build/fridayOS.iso
-
-build: build/fridayOS.iso
+run: target/fridayOS.iso #"make run" to boot the OS
+	qemu-system-x86_64 -cdrom target/fridayOS.iso
 
 clean:
-	rm -rf build
+	cargo clean
