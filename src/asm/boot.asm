@@ -1,3 +1,5 @@
+extern kmain ; we'll be de ning kmain elsewhere 
+
 global start ; Label start is made available outside of this file, Else, GRUB won’t know where to find its definition
 
 section .text ; code goes into a section named .text. Everything that comes after the section line is in that section, until                        another section line.
@@ -130,7 +132,8 @@ mov es, ax ; an extra segment register. Not used, still needs to be set.
 
 ; Unfortunately, we can't modify the code segment register ourselves. So "mov cs, ax" wont work and the way to change cs is to execute what's called a 'far jump'. foo:bar syntax is what makes this a long jump
 
-jmp gdt64.code:long_mode_start
+; jmp gdt64.code:long_mode_start
+jmp gdt64.code:kmain ; changed for rust code
 
 ; ----------------------------------------------------------------------------------------------------------------------------------
 section .text
